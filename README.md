@@ -2,7 +2,7 @@
 
 A precise color keyer for Foundry Nuke with intuitive 6-direction color expansion control.
 
-![Nuke](https://img.shields.io/badge/Nuke-14.0%2B-yellow)
+![Nuke](https://img.shields.io/badge/Nuke-14.1%2B-yellow)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)
 
