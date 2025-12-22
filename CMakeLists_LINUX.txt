@@ -1,0 +1,91 @@
+cmake_minimum_required(VERSION 3.18)
+project(SimpleColorKeyer LANGUAGES CXX)
+
+# Set C++ standard to 17 (required for Nuke 16+)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# ============================================================================
+# RPATH Configuration - Make plugin portable
+# ============================================================================
+# Don't set RPATH - rely on Nuke's LD_LIBRARY_PATH environment
+# This makes the plugin work regardless of where Nuke is installed
+set(CMAKE_SKIP_BUILD_RPATH TRUE)
+set(CMAKE_SKIP_INSTALL_RPATH TRUE)
+
+# Set Nuke version and directory (allow override via -DNUKE_VERSION)
+if(NOT DEFINED NUKE_VERSION)
+    set(NUKE_VERSION "16.0v6")
+endif()
+set(NDKDIR /opt/Nuke${NUKE_VERSION})
+
+message(STATUS "Nuke Version: ${NUKE_VERSION}")
+message(STATUS "Nuke Directory: ${NDKDIR}")
+
+# Verify Nuke directory exists
+if(NOT EXISTS ${NDKDIR})
+    message(FATAL_ERROR "Nuke directory not found: ${NDKDIR}")
+endif()
+if(NOT EXISTS ${NDKDIR}/include/DDImage)
+    message(FATAL_ERROR "DDImage headers not found in: ${NDKDIR}/include")
+endif()
+if(NOT EXISTS ${NDKDIR}/libDDImage.so)
+    message(FATAL_ERROR "libDDImage.so not found in: ${NDKDIR}")
+endif()
+
+# Add the Nuke include directory
+include_directories(${NDKDIR}/include)
+
+# ABI compatibility - uncomment for Nuke 14.x
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+
+# Compile options
+add_compile_options(-fPIC -O3)
+
+# Remove lib prefix from output
+set(CMAKE_SHARED_LIBRARY_PREFIX "")
+
+# Source files
+set(CPP_SOURCES SimpleColorKeyer.cpp)
+
+# Create shared library
+add_library(SimpleColorKeyer SHARED ${CPP_SOURCES})
+
+# Set output suffix
+set_target_properties(SimpleColorKeyer PROPERTIES
+    SUFFIX ".so"
+)
+
+# Link the necessary libraries
+target_link_libraries(SimpleColorKeyer PRIVATE ${NDKDIR}/libDDImage.so)
+
+# No RPATH needed - Nuke's environment provides library paths
+# This makes the plugin portable across different Nuke installations
+
+# Install the shared library
+install(TARGETS SimpleColorKeyer DESTINATION ${CMAKE_INSTALL_PREFIX})
+
+# Convenience install target to user's .nuke directory
+add_custom_target(install-user
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:SimpleColorKeyer> $ENV{HOME}/.nuke/
+    COMMENT "Installing SimpleColorKeyer to user's .nuke directory"
+    DEPENDS SimpleColorKeyer
+)
+
+# Test target
+add_custom_target(test-simple
+    COMMAND echo "=== SimpleColorKeyer Built Successfully ==="
+    COMMAND file $<TARGET_FILE:SimpleColorKeyer>
+    COMMAND echo "============================================"
+    DEPENDS SimpleColorKeyer
+)
+
+# Build summary
+message(STATUS "========================================")
+message(STATUS "SimpleColorKeyer Build Configuration:")
+message(STATUS "  Plugin: SimpleColorKeyer.so")
+message(STATUS "  Nuke Version: ${NUKE_VERSION}")
+message(STATUS "  Nuke Directory: ${NDKDIR}")
+message(STATUS "  RPATH: Not set (portable - uses Nuke's environment)")
+message(STATUS "  Install Prefix: ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "========================================")
